@@ -10,7 +10,7 @@ parser.add_argument('--client-id',type=str,default='1',help='ID do cliente para 
 
 args = parser.parse_args()
 
-CLIENT_ID = args.client-id
+CLIENT_ID = args.client_id
 INPUT_DIR = os.environ.get('INPUT_DIR', f'data/clientes/cliente{CLIENT_ID}')
 RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'localhost')
 
@@ -21,18 +21,21 @@ parameters = pika.ConnectionParameters(
 )
 
 connection = None
-for _ in range(5):
+for i in range(10):
     try:
         connection = pika.BlockingConnection(parameters)
+        print(f'[Cliente {CLIENT_ID}] Conectado ao RabbitMQ!')
         break
     except pika.exceptions.AMQPConnectionError:
-        print('Aguardando RabbitMQ iniciar')
-        time.sleep(2)
+        print(
+            f'[Cliente {CLIENT_ID}] Aguardando RabbitMQ subir... ({i+1}/10)'
+        )
+        time.sleep(3)
 
 if not connection:
-    print('Erro ao conectar no RabbitMQ.')
+    print(f'[Cliente {CLIENT_ID}] Nao foi possivel conectar ao RabbitMQ.')
     exit(1)
-
+    
 channel = connection.channel()
 
 channel.queue_declare(queue='fila_conversao', durable=True)

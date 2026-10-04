@@ -3,6 +3,7 @@ import pika
 import base64
 import io
 import json
+import time
 from PIL import Image
 
 # Pega o host do RabbitMQ vindo do docker-compose ou assume 'localhost' 
@@ -14,7 +15,21 @@ parameters = pika.ConnectionParameters(
     credentials=pika.PlainCredentials(username="guest", password="guest") 
 )
 
-channel = pika.BlockingConnection(parameters).channel()
+connection = None
+for i in range(10):
+    try:
+        connection = pika.BlockingConnection(parameters)
+        print(f'Comsumidor conectado ao RabbitMQ')
+        break
+    except pika.exceptions.AMQPConnectionError:
+        print(f'Aguardando RabbitMQ subir({i+1}/10)')
+        time.sleep(3)
+
+if not connection:
+    print(f'Nao foi possivel conectar ao RabbitMQ')
+    exit(1)
+
+channel = connection.channel()
 
 channel.queue_declare(queue="filaConsumidor",durable=True)
 

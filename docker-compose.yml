@@ -1,0 +1,94 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  
+      - "15672:15672" 
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  consumidor1:
+    build: .
+    container_name: consumidor1
+    command: python source/consumidor.py
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - CONSUMIDOR_NAME=Consumidor 1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  consumidor2:
+    build: .
+    container_name: consumidor2
+    command: python source/consumidor.py
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - CONSUMIDOR_NAME=Consumidor 2
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  armazenador1:
+    build: .
+    container_name: armazenador1
+    command: python source/armazenador.py --storage-id 1
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./data/storages/storage1:/app/output
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  armazenador2:
+    build: .
+    container_name: armazenador2
+    command: python source/armazenador.py --storage-id 2
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./data/storages/storage2:/app/output
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  cliente1:
+    build: .
+    container_name: cliente1
+    command: python source/produtor.py --client-id 1
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - INPUT_DIR=/app/input
+    volumes:
+      - ./data/clientes/cliente1:/app/input
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      consumidor1:
+        condition: service_started
+      armazenador1:
+        condition: service_started
+
+  cliente2:
+    build: .
+    container_name: cliente2
+    command: python source/produtor.py --client-id 2
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - INPUT_DIR=/app/input
+    volumes:
+      - ./data/clientes/cliente2:/app/input
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      consumidor1:
+        condition: service_started
+      armazenador1:
+        condition: service_started
