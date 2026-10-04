@@ -3,7 +3,7 @@ import pika
 import base64
 import io
 import json
-from PIL import image
+from PIL import Image
 
 # Pega o host do RabbitMQ vindo do docker-compose ou assume 'localhost' 
 RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'localhost')
@@ -22,7 +22,7 @@ channel.exchange_declare(exchange="exchange_armazenamento",exchange_type="fanout
 
 channel.basic_qos(prefetch_count=1)
 
-def minha_callback(ch, metod,properties, body):
+def minha_callback(ch, method, properties, body):
     try:
         dados=json.loads(body.decode('utf-8'))
         nome_arquivo=dados['filename']
@@ -51,7 +51,7 @@ def minha_callback(ch, metod,properties, body):
 
 channel.basic_consume(
     queue='fila_conversao',
-    on_message_callback=callback,
+    on_message_callback=minha_callback,
     auto_ack=False,  
 )
 
